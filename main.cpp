@@ -2,11 +2,14 @@
 #include <GL/freeglut.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 #include <iostream>
 #include <fstream>
 #include <vector>
+
+#include "camera.h"
+//#include "callback.h"
+//#include "helper.h"
 
 #define TEST_OPENGL_ERROR()                                                             \
   do {                                                                                  \
@@ -28,6 +31,97 @@ static const std::vector<GLfloat> vertex_buffer_data {
 GLuint plane_vao_id;
 GLuint program_id;
 float anim_time = 0.f;
+
+Camera camera(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+int lastXMouse = 0;
+int lastYMouse = 0;
+bool firstMouse = true;
+int delta_time = 0;
+int last_time = 0;
+struct key_being_pressed {
+  bool w;
+  bool a;
+  bool d;
+  bool s;
+} keyBeingPressed;
+
+void motionFunctionCallback(int x, int y) {
+    if (firstMouse) {
+        lastXMouse = x;
+        lastYMouse = y;
+        firstMouse = false;
+    }
+    int xoffset = x - lastXMouse;
+    int yoffset = lastYMouse - y;
+    lastXMouse = x;
+    lastYMouse = y;
+    camera.processMouse(xoffset, yoffset);
+}
+
+void mouseFunctionCallback(int button, int state, int x, int y)
+{
+    // Wheel reports as button 3(scroll up) and button 4(scroll down)
+    if ((button == 3) || (button == 4)) // It's a wheel event
+    {
+        // Each wheel event reports like a button click, GLUT_DOWN then GLUT_UP
+        if (state == GLUT_UP) return; // Disregard redundant GLUT_UP events
+        float offset = 1.f;
+        if (button == 3)
+            camera.processScroll(offset);
+        else
+            camera.processScroll(-offset);
+    }
+    else if (button == GLUT_RIGHT_BUTTON) {
+        // \/ right MouseButton
+        if (state == GLUT_DOWN) {
+            firstMouse = true;
+        }
+    }
+}
+void keyboardPressFunctionCallback(unsigned char key, int x, int y) {
+    if (key == 'w') {
+        keyBeingPressed.w = true;
+    }
+    else if (key == 'a') {
+        keyBeingPressed.a = true;
+    }
+    else if (key == 'd') {
+        keyBeingPressed.d = true;
+    }
+    else if (key == 's') {
+        keyBeingPressed.s = true;
+    }
+}
+
+void keyboardReleaseFunctionCallback(unsigned char key, int x, int y) {
+    if (key == 'w') {
+        keyBeingPressed.w = false;
+    } else if (key == 'a') {
+        std::cout << "released a " << std::endl;
+        keyBeingPressed.a = false;
+    } else if (key == 'd') {
+        keyBeingPressed.d = false;
+    } else if (key == 's') {
+        keyBeingPressed.s = false;
+    }
+}
+
+void keyboardToCamera() {
+    float dt = delta_time / 1000.0f;
+    if (keyBeingPressed.w) {
+        camera.processKeyboard(Camera_Movement::FORWARD, dt);
+    }
+    if (keyBeingPressed.a) {
+        camera.processKeyboard(Camera_Movement::LEFT, dt);
+    }
+    if (keyBeingPressed.d) {
+        camera.processKeyboard(Camera_Movement::RIGHT, dt);
+    }
+    if (keyBeingPressed.s) {
+        camera.processKeyboard(Camera_Movement::BACKWARD, dt);
+    }
+}
+
 
 void anim() {
     GLint anim_time_location;
@@ -55,14 +149,20 @@ void window_resize(int width, int height) {
 }
 
 void display() {
+  int elapsed_time = glutGet(GLUT_ELAPSED_TIME);
+  delta_time = elapsed_time - last_time;
+  last_time = elapsed_time;
+  keyboardToCamera();
+
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);TEST_OPENGL_ERROR();
 
   GLuint view_loc = glGetUniformLocation(program_id, "view_matrix");TEST_OPENGL_ERROR();
-  auto view_matrix = glm::mat4(1.0f);
+  auto view_matrix = camera.view_matrix();
+  /*
   view_matrix = glm::rotate(
           glm::translate(view_matrix, glm::vec3(0.0f, -.25f, -3.0f)),
           glm::radians(45.f), glm::vec3(1.f, 0.f, 0.f)
-  );
+  );*/
   glUniformMatrix4fv(view_loc, 1, GL_FALSE, &view_matrix[0][0]);TEST_OPENGL_ERROR();
 
   GLuint mv_loc = glGetUniformLocation(program_id, "model_matrix");TEST_OPENGL_ERROR();
@@ -70,7 +170,7 @@ void display() {
   glUniformMatrix4fv(mv_loc, 1, GL_FALSE, &model_matrix[0][0]);TEST_OPENGL_ERROR();
 
   GLuint proj_loc = glGetUniformLocation(program_id, "projection_matrix");TEST_OPENGL_ERROR();
-  glm::mat4 proj_matrix = glm::perspective(glm::radians(45.0f), 1.7f, .1f, 100.f);
+  glm::mat4 proj_matrix = glm::perspective(glm::radians(camera.fov_camera), 1.7f, .1f, 100.f);
   glUniformMatrix4fv(proj_loc, 1, GL_FALSE, &proj_matrix[0][0]);TEST_OPENGL_ERROR();
 
   glBindVertexArray(plane_vao_id);TEST_OPENGL_ERROR();
@@ -93,6 +193,12 @@ void init_glut(int &argc, char *argv[]) {
   glutCreateWindow("Shader Programming");
   glutDisplayFunc(display);
   glutReshapeFunc(window_resize);
+
+  glutIgnoreKeyRepeat(1);
+  glutMotionFunc(motionFunctionCallback);
+  glutMouseFunc(mouseFunctionCallback);
+  glutKeyboardFunc(keyboardPressFunctionCallback);
+  glutKeyboardUpFunc(keyboardReleaseFunctionCallback);
 }
 
 bool init_glew() {
