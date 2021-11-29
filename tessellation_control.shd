@@ -1,0 +1,16 @@
+#version 450
+
+layout(vertices = 4) out;
+
+void main() {
+  int nb_divide = 40;
+  gl_TessLevelOuter[0] = nb_divide;
+  gl_TessLevelOuter[1] = nb_divide;
+  gl_TessLevelOuter[2] = nb_divide;
+  gl_TessLevelOuter[3] = nb_divide;
+
+  gl_TessLevelInner[0] = nb_divide;
+  gl_TessLevelInner[1] = nb_divide;
+
+  gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
+}
