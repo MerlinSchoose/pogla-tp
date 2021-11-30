@@ -71,7 +71,7 @@ void mouseFunctionCallback(int button, int state, int x, int y)
         else
             camera.processScroll(-offset);
     }
-    else if (button == GLUT_RIGHT_BUTTON) {
+    else if (button == GLUT_LEFT_BUTTON || button == GLUT_RIGHT_BUTTON) {
         // \/ right MouseButton
         if (state == GLUT_DOWN) {
             firstMouse = true;
@@ -155,6 +155,12 @@ void display() {
   keyboardToCamera();
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);TEST_OPENGL_ERROR();
+
+  GLuint light_pos = glGetUniformLocation(program_id, "lightPos");TEST_OPENGL_ERROR();
+  glUniform3f(light_pos, 0.0f, 2.0f, 3.0f);
+
+  GLuint view_pos = glGetUniformLocation(program_id, "viewPos");TEST_OPENGL_ERROR();
+  glUniform3fv(view_pos, 1, &camera.position[0]);
 
   GLuint view_loc = glGetUniformLocation(program_id, "view_matrix");TEST_OPENGL_ERROR();
   auto view_matrix = camera.view_matrix();

@@ -2,7 +2,27 @@
 
 layout(location=0) out vec4 output_color;
 in vec3 color;
+in vec3 normal;
+in vec3 FragPos;
+uniform vec3 lightPos;
+uniform vec3 viewPos;
 
 void main() {
-  output_color = vec4(color, 1.f);
+  vec3 color_light = vec3(1.0f);
+  vec3 lightDir = normalize(lightPos - FragPos);
+  vec3 norm = normalize(normal);
+  vec3 viewDir = normalize(viewPos - FragPos);
+  vec3 reflectDir = reflect(-lightDir, norm);
+
+  float specularStrenght = 0.5f;
+  float spec = pow(max(dot(viewDir, reflectDir), 0.0f), 32.0f);
+  vec3 specular = specularStrenght * spec * color_light;
+
+  float diff = max(dot(lightDir, norm), 0.0f);
+  vec3 diffuse = color_light * diff;
+
+  vec3 result = (diffuse + specular) * color;
+  output_color = vec4(result, 1.f);
+  //output_color = vec4(vec3(diff), 1.f);
+  //output_color = vec4(norm, 1.f);
 }
