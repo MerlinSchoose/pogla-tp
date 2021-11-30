@@ -97,7 +97,6 @@ void keyboardReleaseFunctionCallback(unsigned char key, int x, int y) {
     if (key == 'w') {
         keyBeingPressed.w = false;
     } else if (key == 'a') {
-        std::cout << "released a " << std::endl;
         keyBeingPressed.a = false;
     } else if (key == 'd') {
         keyBeingPressed.d = false;
@@ -157,7 +156,7 @@ void display() {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);TEST_OPENGL_ERROR();
 
   GLuint light_pos = glGetUniformLocation(program_id, "lightPos");TEST_OPENGL_ERROR();
-  glUniform3f(light_pos, 0.0f, 2.0f, 3.0f);
+  glUniform3f(light_pos, 0.0f, 2.0f, -3.0f);
 
   GLuint view_pos = glGetUniformLocation(program_id, "viewPos");TEST_OPENGL_ERROR();
   glUniform3fv(view_pos, 1, &camera.position[0]);
